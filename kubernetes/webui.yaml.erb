@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubeadmin-service
+spec:
+  selector:
+    app: kubeadmin-webui
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-service
+spec:
+  selector:
+    app: kube-webui
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-deployment
+  labels:
+    app: kubeadmin-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubeadmin-webui
+  template:
+    metadata:
+      labels:
+        app: kubeadmin-webui
+    spec:
+      containers:
+        - name: auth
+          image: "keycloak/keycloak-gatekeeper:6.0.1"
+          args:
+            - --client-id=kube-webui-admin
+            - --client-secret=$(KEYCLOAK_SECRET)
+            - --encryption-key=$(ENCRYPTION_KEY)
+            - --redirection-url=https://kubeadmin.ocf.berkeley.edu/
+            - --discovery-url=https://auth.ocf.berkeley.edu/auth/realms/ocf
+            - --enable-default-deny=true
+            - --enable-session-cookies
+            - --listen=:8080
+            - --upstream-url=http://kubernetes-dashboard.kube-system.svc.cluster.local
+            - --resources=uri=/*|roles=ocfroot
+            - --headers=Authorization=Bearer $(AUTH_TOKEN)
+          env:
+            - name: KEYCLOAK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: secret
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: encryption_key
+            - name: AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-secret
+                  key: token
+          ports:
+            - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: viewer-deployment
+  labels:
+    app: kube-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-webui
+  template:
+    metadata:
+      labels:
+        app: kube-webui
+    spec:
+      containers:
+        - name: auth
+          image: "keycloak/keycloak-gatekeeper:6.0.1"
+          args:
+            - --client-id=kube-webui-viewer
+            - --client-secret=$(KEYCLOAK_SECRET)
+            - --encryption-key=$(ENCRYPTION_KEY)
+            - --redirection-url=https://kube.ocf.berkeley.edu/
+            - --discovery-url=https://auth.ocf.berkeley.edu/auth/realms/ocf
+            - --enable-default-deny=true
+            - --enable-session-cookies
+            - --listen=:8080
+            - --upstream-url=http://kubernetes-dashboard.kube-system.svc.cluster.local
+            - --resources=uri=/*|roles=ocfstaff
+            - --headers=Authorization=Bearer $(AUTH_TOKEN)
+          env:
+            - name: KEYCLOAK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-viewer-secret
+                  key: secret
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-viewer-secret
+                  key: encryption_key
+            - name: AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-viewer-secret
+                  key: token
+          ports:
+            - containerPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: virtual-host-ingress
+spec:
+  rules:
+    - host: kubeadmin.ocf.berkeley.edu
+      http:
+        paths:
+          - backend:
+              serviceName: kubeadmin-service
+              servicePort: 80
+    - host: kube.ocf.berkeley.edu
+      http:
+        paths:
+          - backend:
+              serviceName: kube-service
+              servicePort: 80
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-admin-secret
+type: Opaque
+stringData:
+  secret: <%= keycloak_admin_secret %>
+  encryption_key: <%= keycloak_admin_encryption_key %>
+  token: <%= kubernetes_admin_token %>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-viewer-secret
+type: Opaque
+stringData:
+  secret: <%= keycloak_viewer_secret %>
+  encryption_key: <%= keycloak_viewer_encryption_key %>
+  token: <%= kubernetes_viewer_token %>
