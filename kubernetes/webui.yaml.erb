@@ -48,7 +48,7 @@ spec:
             - --enable-default-deny=true
             - --enable-session-cookies
             - --listen=:8080
-            - --upstream-url=http://kubernetes-dashboard.kube-system.svc.cluster.local
+            - --upstream-url=https://kubernetes-dashboard.app-kube-webui.svc.cluster.local
             - --resources=uri=/*|roles=ocfroot
             - --headers=Authorization=Bearer $(AUTH_TOKEN)
           env:
@@ -98,7 +98,7 @@ spec:
             - --enable-default-deny=true
             - --enable-session-cookies
             - --listen=:8080
-            - --upstream-url=http://kubernetes-dashboard.kube-system.svc.cluster.local
+            - --upstream-url=https://kubernetes-dashboard.app-kube-webui.svc.cluster.local
             - --resources=uri=/*|roles=ocfstaff
             - --headers=Authorization=Bearer $(AUTH_TOKEN)
           env:
