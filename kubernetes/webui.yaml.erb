@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: "keycloak/keycloak-gatekeeper:6.0.1"
+          image: "quay.io/keycloak/keycloak-gatekeeper:6.0.1"
           args:
             - --client-id=kube-webui-admin
             - --client-secret=$(KEYCLOAK_SECRET)
@@ -88,7 +88,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: "keycloak/keycloak-gatekeeper:6.0.1"
+          image: "quay.io/keycloak/keycloak-gatekeeper:6.0.1"
           args:
             - --client-id=kube-webui-viewer
             - --client-secret=$(KEYCLOAK_SECRET)
